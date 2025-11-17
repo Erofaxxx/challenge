@@ -136,7 +136,7 @@ def process_sequences(df: pd.DataFrame, seq_ids: list, base_dim: int):
 
         # Создаем feature engineer и normalizer для ЭТОЙ последовательности
         feat_eng = FeatureEngineer(base_dim)
-        normalizer = SequenceNormalizer(11 * base_dim)  # engineered_dim (11x оптимизированный набор)
+        normalizer = SequenceNormalizer(12 * base_dim)  # engineered_dim (12x оптимизированный набор)
 
         # Обрабатываем все шаги
         engineered_features = []
@@ -317,10 +317,10 @@ def main():
     train_sequences, val_sequences, base_dim = prepare_sequences(args.data)
 
     # Вычисляем engineered_dim (оптимизированный набор)
-    # 1+1+2+1+1+1+1+1+1+1 = 11x base_dim (СОКРАЩЕНО для оптимизации!)
-    engineered_dim = 11 * base_dim
+    # 1+1+2+1+1+1+1+2+1+1 = 12x base_dim (СОКРАЩЕНО для оптимизации!)
+    engineered_dim = 12 * base_dim
     print(f"\nРазмерность после feature engineering: {engineered_dim}")
-    print(f"Оптимизированный набор (11x): raw, delta, SMA(2), STD, EMA, RSI, MACD, BB-width, Momentum, ROC")
+    print(f"Оптимизированный набор (12x): raw, delta, SMA(2), STD, EMA, RSI, MACD, Bollinger(2), Momentum, ROC")
     print(f"Сокращено с 23x для баланса качества и скорости!")
 
     # Создаем datasets

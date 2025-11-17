@@ -175,13 +175,13 @@ class FeatureEngineer:
         5. EMA (1x) - экспоненциальная скользящая средняя
         6. RSI (1x) - индекс относительной силы
         7. MACD (1x) - только основная линия (наиболее информативна)
-        8. Bollinger Width (1x) - ширина полосы Боллинджера (волатильность)
+        8. Bollinger Bands (2x) - верхняя и нижняя полосы (абсолютные уровни)
         9. Momentum (1x) - импульс за 10 периодов
         10. ROC (1x) - скорость изменения за 10 периодов
 
-        Итого: 1+1+2+1+1+1+1+1+1+1 = 11x base_dim
+        Итого: 1+1+2+1+1+1+1+2+1+1 = 12x base_dim
 
-        СОКРАЩЕНО С 23x ДО 11x для оптимизации памяти и скорости!
+        СОКРАЩЕНО С 23x ДО 12x для оптимизации памяти и скорости!
         """
         features = []
 
@@ -234,10 +234,10 @@ class FeatureEngineer:
         macd_line, _, _ = self._calculate_macd(history_array)  # Сокращено с 3 до 1
         features.append(macd_line)
 
-        # 8. Bollinger Band Width - ширина полосы (мера волатильности)
+        # 8. Bollinger Bands - верхняя и нижняя полосы (абсолютные уровни)
         bb_upper, _, bb_lower = self._calculate_bollinger_bands(history_array, period=20)
-        bb_width = bb_upper - bb_lower  # Сокращено с 2 до 1
-        features.append(bb_width)
+        features.append(bb_upper)
+        features.append(bb_lower)
 
         # 9. Momentum - импульс за 10 периодов
         period = 10  # Сокращено с 2 периодов до 1
@@ -264,7 +264,7 @@ class FeatureEngineer:
         self.prev_state = state.copy()
 
         # Объединяем все признаки
-        # Итого: 11x base_dim признаков (ОПТИМИЗИРОВАНО!)
+        # Итого: 12x base_dim признаков (ОПТИМИЗИРОВАНО!)
         return np.concatenate(features).astype(np.float32)
 
 
@@ -356,11 +356,11 @@ class Mamba2Model(nn.Module):
     """
     Полная Mamba-2 модель для предсказания временных рядов
 
-    ВАЖНО: Модель принимает engineered features (input_dim = 11 * base_dim),
+    ВАЖНО: Модель принимает engineered features (input_dim = 12 * base_dim),
     но предсказывает только оригинальные признаки (output_dim = base_dim = 32).
 
-    Оптимизированный набор признаков (11x вместо 23x):
-    - Raw, Delta, SMA(2), STD, EMA, RSI, MACD, Bollinger Width, Momentum, ROC
+    Оптимизированный набор признаков (12x вместо 23x):
+    - Raw, Delta, SMA(2), STD, EMA, RSI, MACD, Bollinger Bands(2), Momentum, ROC
     - Баланс между качеством и скоростью
     - Loss оптимизируется по base_dim признакам
     """
@@ -517,10 +517,10 @@ class PredictionModel:
         if self.base_dim is None:
             self.base_dim = len(data_point.state)
             # Вычисляем engineered_dim
-            # ВАЖНО: Модель получает на вход engineered features (11x),
+            # ВАЖНО: Модель получает на вход engineered features (12x),
             # но предсказывает ТОЛЬКО оригинальные base_dim признаков!
-            # 1+1+2+1+1+1+1+1+1+1 = 11x base_dim (ОПТИМИЗИРОВАНО!)
-            self.engineered_dim = 11 * self.base_dim
+            # 1+1+2+1+1+1+1+2+1+1 = 12x base_dim (ОПТИМИЗИРОВАНО!)
+            self.engineered_dim = 12 * self.base_dim
 
             self.feature_engineer = FeatureEngineer(self.base_dim)
             self.normalizer = SequenceNormalizer(self.engineered_dim)
