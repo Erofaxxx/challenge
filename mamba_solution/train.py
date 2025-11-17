@@ -136,7 +136,7 @@ def process_sequences(df: pd.DataFrame, seq_ids: list, base_dim: int):
 
         # Создаем feature engineer и normalizer для ЭТОЙ последовательности
         feat_eng = FeatureEngineer(base_dim)
-        normalizer = SequenceNormalizer(13 * base_dim)  # engineered_dim
+        normalizer = SequenceNormalizer(23 * base_dim)  # engineered_dim (23x с трейдерскими индикаторами)
 
         # Обрабатываем все шаги
         engineered_features = []
@@ -316,9 +316,11 @@ def main():
     # Загружаем и обрабатываем данные
     train_sequences, val_sequences, base_dim = prepare_sequences(args.data)
 
-    # Вычисляем engineered_dim
-    engineered_dim = 13 * base_dim
+    # Вычисляем engineered_dim (с трейдерскими индикаторами)
+    # 1+1+1+4+3+3+1+3+2+2+2 = 23x base_dim
+    engineered_dim = 23 * base_dim
     print(f"\nРазмерность после feature engineering: {engineered_dim}")
+    print(f"Включает: raw, delta, accel, SMA, STD, EMA, RSI, MACD, Bollinger, Momentum, ROC")
 
     # Создаем datasets
     print("\nСоздаем datasets...")

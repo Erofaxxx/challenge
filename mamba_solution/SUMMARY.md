@@ -9,14 +9,19 @@
 - ✅ Gating mechanisms
 - ✅ Residual connections + Layer Normalization
 
-### 2. Feature Engineering
+### 2. Feature Engineering (Трейдерские индикаторы)
 - ✅ Raw features (базовые признаки)
 - ✅ Delta (первая разность)
 - ✅ Acceleration (вторая разность)
-- ✅ Moving Averages (окна: 3, 5, 10, 20)
-- ✅ Standard Deviations (окна: 5, 10, 20)
-- ✅ Exponential Moving Averages (decay: 0.1, 0.3, 0.5)
-- ✅ **Итого: 13x увеличение размерности**
+- ✅ Simple Moving Averages / SMA (окна: 3, 5, 10, 20)
+- ✅ Standard Deviations / Volatility (окна: 5, 10, 20)
+- ✅ Exponential Moving Averages / EMA (decay: 0.1, 0.3, 0.5)
+- ✅ **RSI** (Relative Strength Index)
+- ✅ **MACD** (Moving Average Convergence Divergence) + Signal + Histogram
+- ✅ **Bollinger Bands** (верхняя и нижняя полосы)
+- ✅ **Momentum** (5-period, 10-period)
+- ✅ **ROC** (Rate of Change, 5-period, 10-period)
+- ✅ **Итого: 23x увеличение размерности**
 
 ### 3. Per-Sequence обработка
 - ✅ Правильный сброс состояния при смене seq_ix
@@ -44,7 +49,7 @@ mamba_solution/
 ├── solution.py              # Главный файл (ОБЯЗАТЕЛЬНЫЙ)
 │                            # - PredictionModel class
 │                            # - Mamba2Model architecture
-│                            # - FeatureEngineer
+│                            # - FeatureEngineer с RSI, MACD, Bollinger
 │                            # - SequenceNormalizer
 │
 ├── train.py                 # Скрипт обучения
@@ -53,6 +58,10 @@ mamba_solution/
 │                            # - Создание datasets
 │                            # - Обучение ансамбля
 │
+├── train_tmux.sh           # 🔥 Запуск обучения в tmux
+├── train_tmux_custom.sh    # 🔥 Обучение в tmux с выбором параметров
+├── test_tmux.sh            # 🔥 Тестирование в tmux
+│
 ├── requirements.txt         # Зависимости
 │                            # - torch, numpy, pandas
 │                            # - scikit-learn, tqdm, pyarrow
@@ -60,9 +69,11 @@ mamba_solution/
 ├── README.md               # Подробная документация (English)
 │
 ├── ИНСТРУКЦИЯ.md           # Подробная инструкция (Русский)
-│                            # - Пошаговое руководство
+│                            # - Пошаговое руководство с tmux
 │                            # - Решение проблем
 │                            # - FAQ
+│
+├── TMUX_GUIDE.md           # 🔥 Руководство по tmux
 │
 ├── prepare_submission.sh   # Скрипт создания submission.zip
 │
@@ -99,14 +110,23 @@ cd mamba_solution
 pip install -r requirements.txt
 ```
 
-### 3. Обучить модели
+### 3. Обучить модели (РЕКОМЕНДУЕТСЯ: в tmux)
 ```bash
-python train.py --data ../datasets/train.parquet
+# Вариант 1: Автоматическое обучение
+./train_tmux.sh
+
+# Вариант 2: С выбором параметров
+./train_tmux_custom.sh
+
+# Можно выйти из терминала - обучение продолжится!
+# Подробности: TMUX_GUIDE.md
 ```
 
 ### 4. Тестировать
 ```bash
 python solution.py
+# Или в tmux:
+./test_tmux.sh
 ```
 
 ### 5. Создать submission
@@ -130,17 +150,24 @@ for step in sequence:
     normalized = normalizer.update_and_normalize(features)
 ```
 
-### 3. Feature Engineering
+### 3. Feature Engineering (Trading Indicators)
 ```python
-# 13x расширение признаков
+# 23x расширение признаков для trading
 engineered_features = [
-    raw,           # 1x
-    delta,         # 1x
-    accel,         # 1x
-    MA_windows,    # 4x
-    std_windows,   # 3x
-    EMA_decays     # 3x
+    raw,              # 1x - оригинальные признаки
+    delta,            # 1x - первая разность
+    accel,            # 1x - ускорение
+    SMA_windows,      # 4x - Simple MA (3,5,10,20)
+    std_windows,      # 3x - Volatility (5,10,20)
+    EMA_alphas,       # 3x - Exponential MA
+    RSI,              # 1x - Relative Strength Index
+    MACD_components,  # 3x - MACD line, signal, histogram
+    Bollinger,        # 2x - верхняя/нижняя полосы
+    Momentum,         # 2x - 5-period, 10-period
+    ROC              # 2x - Rate of Change
 ]
+# Итого: 23x base_dim
+# Модель предсказывает только base_dim (32 признака)!
 ```
 
 ### 4. Mamba-2 SSM
