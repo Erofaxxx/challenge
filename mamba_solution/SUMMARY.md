@@ -9,19 +9,18 @@
 - ✅ Gating mechanisms
 - ✅ Residual connections + Layer Normalization
 
-### 2. Feature Engineering (Трейдерские индикаторы)
+### 2. Feature Engineering (ОПТИМИЗИРОВАННЫЙ набор)
 - ✅ Raw features (базовые признаки)
-- ✅ Delta (первая разность)
-- ✅ Acceleration (вторая разность)
-- ✅ Simple Moving Averages / SMA (окна: 3, 5, 10, 20)
-- ✅ Standard Deviations / Volatility (окна: 5, 10, 20)
-- ✅ Exponential Moving Averages / EMA (decay: 0.1, 0.3, 0.5)
-- ✅ **RSI** (Relative Strength Index)
-- ✅ **MACD** (Moving Average Convergence Divergence) + Signal + Histogram
-- ✅ **Bollinger Bands** (верхняя и нижняя полосы)
-- ✅ **Momentum** (5-period, 10-period)
-- ✅ **ROC** (Rate of Change, 5-period, 10-period)
-- ✅ **Итого: 23x увеличение размерности**
+- ✅ Delta (первая разность - тренд)
+- ✅ Simple Moving Averages / SMA (2 окна: 5, 20 - кроссоверы)
+- ✅ Standard Deviation / Volatility (10-period)
+- ✅ Exponential Moving Average / EMA (alpha=0.3)
+- ✅ **RSI** (Relative Strength Index - критично!)
+- ✅ **MACD** (только линия - самая информативная)
+- ✅ **Bollinger Width** (ширина полосы - волатильность)
+- ✅ **Momentum** (10-period импульс)
+- ✅ **ROC** (Rate of Change 10-period)
+- ✅ **Итого: 11x увеличение размерности** (СОКРАЩЕНО с 23x!)
 
 ### 3. Per-Sequence обработка
 - ✅ Правильный сброс состояния при смене seq_ix
@@ -150,24 +149,24 @@ for step in sequence:
     normalized = normalizer.update_and_normalize(features)
 ```
 
-### 3. Feature Engineering (Trading Indicators)
+### 3. Feature Engineering (ОПТИМИЗИРОВАНО!)
 ```python
-# 23x расширение признаков для trading
+# 11x расширение признаков - БАЛАНС качества и скорости!
 engineered_features = [
     raw,              # 1x - оригинальные признаки
-    delta,            # 1x - первая разность
-    accel,            # 1x - ускорение
-    SMA_windows,      # 4x - Simple MA (3,5,10,20)
-    std_windows,      # 3x - Volatility (5,10,20)
-    EMA_alphas,       # 3x - Exponential MA
+    delta,            # 1x - тренд (первая разность)
+    SMA,              # 2x - короткий (5) и длинный (20)
+    std,              # 1x - волатильность (10-period)
+    EMA,              # 1x - экспоненциальная MA (alpha=0.3)
     RSI,              # 1x - Relative Strength Index
-    MACD_components,  # 3x - MACD line, signal, histogram
-    Bollinger,        # 2x - верхняя/нижняя полосы
-    Momentum,         # 2x - 5-period, 10-period
-    ROC              # 2x - Rate of Change
+    MACD_line,        # 1x - только линия (самая информативная)
+    Bollinger_width,  # 1x - ширина полосы
+    Momentum,         # 1x - 10-period импульс
+    ROC              # 1x - Rate of Change 10-period
 ]
-# Итого: 23x base_dim
+# Итого: 11x base_dim (СОКРАЩЕНО С 23x!)
 # Модель предсказывает только base_dim (32 признака)!
+# Для 32 признаков: 352 engineered features вместо 736
 ```
 
 ### 4. Mamba-2 SSM

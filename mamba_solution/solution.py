@@ -164,22 +164,24 @@ class FeatureEngineer:
 
     def engineer_features(self, state: np.ndarray) -> np.ndarray:
         """
-        Создаем расширенный набор признаков для trading
+        Создаем ОПТИМИЗИРОВАННЫЙ набор признаков для trading
 
-        Возвращает конкатенацию:
-        1. Raw (1x)
-        2. Delta (1x)
-        3. Acceleration (1x)
-        4. SMA windows (4x): 3, 5, 10, 20
-        5. STD windows (3x): 5, 10, 20
-        6. EMA alphas (3x): 0.1, 0.3, 0.5
-        7. RSI (1x)
-        8. MACD (3x): line, signal, histogram
-        9. Bollinger Bands (2x): upper, lower (middle уже есть в SMA-20)
-        10. Momentum (2x): 5-period, 10-period
-        11. ROC (2x): 5-period, 10-period
+        Оставлены только самые важные индикаторы для баланса качества и скорости:
 
-        Итого: 1+1+1+4+3+3+1+3+2+2+2 = 23x base_dim
+        1. Raw (1x) - оригинальные признаки
+        2. Delta (1x) - первая разность (тренд)
+        3. SMA (2x) - короткий (5) и длинный (20) периоды
+        4. STD (1x) - волатильность за 10 периодов
+        5. EMA (1x) - экспоненциальная скользящая средняя
+        6. RSI (1x) - индекс относительной силы
+        7. MACD (1x) - только основная линия (наиболее информативна)
+        8. Bollinger Width (1x) - ширина полосы Боллинджера (волатильность)
+        9. Momentum (1x) - импульс за 10 периодов
+        10. ROC (1x) - скорость изменения за 10 периодов
+
+        Итого: 1+1+2+1+1+1+1+1+1+1 = 11x base_dim
+
+        СОКРАЩЕНО С 23x ДО 11x для оптимизации памяти и скорости!
         """
         features = []
 
@@ -190,92 +192,79 @@ class FeatureEngineer:
         self.history.append(state)
         history_array = np.array(self.history)
 
-        # 2. Delta (первая разность)
+        # 2. Delta (первая разность) - КРИТИЧНО для понимания тренда
         if self.prev_state is not None:
             delta = state - self.prev_state
             features.append(delta)
-
-            # 3. Acceleration (вторая разность)
-            if self.prev_delta is not None:
-                accel = delta - self.prev_delta
-                features.append(accel)
-            else:
-                features.append(np.zeros_like(state))
-
             self.prev_delta = delta
         else:
             features.append(np.zeros_like(state))
-            features.append(np.zeros_like(state))
 
-        # 4. Simple Moving Averages (SMA)
-        for window in [3, 5, 10, 20]:
+        # 3. Simple Moving Averages - короткая и длинная (кроссоверы важны)
+        for window in [5, 20]:  # Сокращено с 4 до 2
             if len(self.history) >= window:
                 sma = np.mean(history_array[-window:], axis=0)
                 features.append(sma)
             else:
                 features.append(state)
 
-        # 5. Standard Deviations (Volatility)
-        for window in [5, 10, 20]:
-            if len(self.history) >= window:
-                std = np.std(history_array[-window:], axis=0)
-                features.append(std)
-            else:
-                features.append(np.zeros_like(state))
+        # 4. Standard Deviation - волатильность
+        window = 10  # Сокращено с 3 окон до 1
+        if len(self.history) >= window:
+            std = np.std(history_array[-window:], axis=0)
+            features.append(std)
+        else:
+            features.append(np.zeros_like(state))
 
-        # 6. Exponential Moving Averages (EMA)
-        for alpha in [0.1, 0.3, 0.5]:
-            if len(self.history) >= 2:
-                ema = history_array[0].copy()
-                for i in range(1, len(history_array)):
-                    ema = alpha * history_array[i] + (1 - alpha) * ema
-                features.append(ema)
-            else:
-                features.append(state)
+        # 5. Exponential Moving Average - одна оптимальная
+        alpha = 0.3  # Сокращено с 3 до 1
+        if len(self.history) >= 2:
+            ema = history_array[0].copy()
+            for i in range(1, len(history_array)):
+                ema = alpha * history_array[i] + (1 - alpha) * ema
+            features.append(ema)
+        else:
+            features.append(state)
 
-        # 7. RSI (Relative Strength Index)
+        # 6. RSI (Relative Strength Index) - КРИТИЧНО для trading
         rsi = self._calculate_rsi(history_array)
         features.append(rsi)
 
-        # 8. MACD (Moving Average Convergence Divergence)
-        macd_line, signal_line, histogram = self._calculate_macd(history_array)
+        # 7. MACD - только основная линия (наиболее информативна)
+        macd_line, _, _ = self._calculate_macd(history_array)  # Сокращено с 3 до 1
         features.append(macd_line)
-        features.append(signal_line)
-        features.append(histogram)
 
-        # 9. Bollinger Bands (только верхняя и нижняя, средняя уже есть в SMA-20)
-        bb_upper, bb_middle, bb_lower = self._calculate_bollinger_bands(history_array, period=20)
-        features.append(bb_upper)
-        features.append(bb_lower)
+        # 8. Bollinger Band Width - ширина полосы (мера волатильности)
+        bb_upper, _, bb_lower = self._calculate_bollinger_bands(history_array, period=20)
+        bb_width = bb_upper - bb_lower  # Сокращено с 2 до 1
+        features.append(bb_width)
 
-        # 10. Momentum (изменение цены за N периодов)
-        for period in [5, 10]:
-            if len(self.history) >= period + 1:
-                momentum = state - history_array[-period-1]
-                features.append(momentum)
-            else:
-                features.append(np.zeros_like(state))
+        # 9. Momentum - импульс за 10 периодов
+        period = 10  # Сокращено с 2 периодов до 1
+        if len(self.history) >= period + 1:
+            momentum = state - history_array[-period-1]
+            features.append(momentum)
+        else:
+            features.append(np.zeros_like(state))
 
-        # 11. Rate of Change (ROC) - процентное изменение
-        for period in [5, 10]:
-            if len(self.history) >= period + 1:
-                prev_value = history_array[-period-1]
-                # ROC = (current - previous) / previous * 100
-                # Избегаем деления на ноль
-                roc = np.divide(
-                    (state - prev_value) * 100.0,
-                    np.abs(prev_value) + 1e-8,
-                    out=np.zeros_like(state),
-                    where=np.abs(prev_value) > 1e-8
-                )
-                features.append(roc)
-            else:
-                features.append(np.zeros_like(state))
+        # 10. Rate of Change (ROC) - скорость изменения
+        period = 10  # Сокращено с 2 периодов до 1
+        if len(self.history) >= period + 1:
+            prev_value = history_array[-period-1]
+            roc = np.divide(
+                (state - prev_value) * 100.0,
+                np.abs(prev_value) + 1e-8,
+                out=np.zeros_like(state),
+                where=np.abs(prev_value) > 1e-8
+            )
+            features.append(roc)
+        else:
+            features.append(np.zeros_like(state))
 
         self.prev_state = state.copy()
 
         # Объединяем все признаки
-        # Итого: 23x base_dim признаков
+        # Итого: 11x base_dim признаков (ОПТИМИЗИРОВАНО!)
         return np.concatenate(features).astype(np.float32)
 
 
@@ -367,12 +356,12 @@ class Mamba2Model(nn.Module):
     """
     Полная Mamba-2 модель для предсказания временных рядов
 
-    ВАЖНО: Модель принимает engineered features (input_dim = 23 * base_dim),
+    ВАЖНО: Модель принимает engineered features (input_dim = 11 * base_dim),
     но предсказывает только оригинальные признаки (output_dim = base_dim = 32).
 
-    Это правильно, потому что:
-    - На вход подаем богатые признаки (RSI, MACD, Bollinger Bands, etc.)
-    - На выход предсказываем только сырые рыночные состояния
+    Оптимизированный набор признаков (11x вместо 23x):
+    - Raw, Delta, SMA(2), STD, EMA, RSI, MACD, Bollinger Width, Momentum, ROC
+    - Баланс между качеством и скоростью
     - Loss оптимизируется по base_dim признакам
     """
 
@@ -528,10 +517,10 @@ class PredictionModel:
         if self.base_dim is None:
             self.base_dim = len(data_point.state)
             # Вычисляем engineered_dim
-            # ВАЖНО: Модель получает на вход engineered features (23x),
+            # ВАЖНО: Модель получает на вход engineered features (11x),
             # но предсказывает ТОЛЬКО оригинальные base_dim признаков!
-            # 1+1+1+4+3+3+1+3+2+2+2 = 23x base_dim
-            self.engineered_dim = 23 * self.base_dim
+            # 1+1+2+1+1+1+1+1+1+1 = 11x base_dim (ОПТИМИЗИРОВАНО!)
+            self.engineered_dim = 11 * self.base_dim
 
             self.feature_engineer = FeatureEngineer(self.base_dim)
             self.normalizer = SequenceNormalizer(self.engineered_dim)
