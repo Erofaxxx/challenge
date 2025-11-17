@@ -33,7 +33,8 @@ case $config_choice in
         BATCH_SIZE=32
         D_MODEL=128
         N_LAYERS=4
-        MAX_SEQ=50
+        STRIDE=2
+        CONTEXT=40
         echo "✅ Выбрано: Быстрое тестирование"
         ;;
     2)
@@ -42,7 +43,8 @@ case $config_choice in
         BATCH_SIZE=64
         D_MODEL=128
         N_LAYERS=4
-        MAX_SEQ=150
+        STRIDE=2
+        CONTEXT=40
         echo "✅ Выбрано: Базовое обучение"
         ;;
     3)
@@ -51,7 +53,8 @@ case $config_choice in
         BATCH_SIZE=64
         D_MODEL=192
         N_LAYERS=6
-        MAX_SEQ=""
+        STRIDE=2
+        CONTEXT=50
         echo "✅ Выбрано: Улучшенное обучение"
         ;;
     4)
@@ -61,7 +64,8 @@ case $config_choice in
         read -p "Batch size (16/32/64/128): " BATCH_SIZE
         read -p "d_model (64/96/128/192): " D_MODEL
         read -p "n_layers (3/4/5/6): " N_LAYERS
-        read -p "Макс. последовательностей (50-517, Enter=все): " MAX_SEQ
+        read -p "Context length (30-80): " CONTEXT
+        read -p "Stride (1-3, 2=рекомендуется): " STRIDE
         echo "✅ Выбрано: Кастомная конфигурация"
         ;;
     *)
@@ -79,6 +83,8 @@ echo "  • Эпохи: $EPOCHS"
 echo "  • Batch size: $BATCH_SIZE"
 echo "  • d_model: $D_MODEL"
 echo "  • n_layers: $N_LAYERS"
+echo "  • context_length: $CONTEXT"
+echo "  • stride: $STRIDE (каждый $STRIDE-й шаг)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
@@ -112,11 +118,7 @@ echo ""
 echo "Запускаем обучение..."
 
 # Создаем команду запуска
-if [ -n "$MAX_SEQ" ]; then
-    TRAIN_CMD="python3 train.py --data ../datasets/train.parquet --num-models $NUM_MODELS --epochs $EPOCHS --batch-size $BATCH_SIZE --d-model $D_MODEL --n-layers $N_LAYERS --max-sequences $MAX_SEQ 2>&1 | tee training_${NUM_MODELS}models_${EPOCHS}ep.log"
-else
-    TRAIN_CMD="python3 train.py --data ../datasets/train.parquet --num-models $NUM_MODELS --epochs $EPOCHS --batch-size $BATCH_SIZE --d-model $D_MODEL --n-layers $N_LAYERS 2>&1 | tee training_${NUM_MODELS}models_${EPOCHS}ep.log"
-fi
+TRAIN_CMD="python3 train.py --data ../datasets/train.parquet --num-models $NUM_MODELS --epochs $EPOCHS --batch-size $BATCH_SIZE --d-model $D_MODEL --n-layers $N_LAYERS --context-length $CONTEXT --stride $STRIDE 2>&1 | tee training_${NUM_MODELS}models_${EPOCHS}ep.log"
 
 # Создаем tmux сессию
 tmux new-session -d -s $SESSION_NAME -n "training"
@@ -134,6 +136,7 @@ tmux send-keys -t $SESSION_NAME "echo '  Эпохи: $EPOCHS'" C-m
 tmux send-keys -t $SESSION_NAME "echo '  Batch: $BATCH_SIZE'" C-m
 tmux send-keys -t $SESSION_NAME "echo '  d_model: $D_MODEL'" C-m
 tmux send-keys -t $SESSION_NAME "echo '  n_layers: $N_LAYERS'" C-m
+tmux send-keys -t $SESSION_NAME "echo '  context: $CONTEXT, stride: $STRIDE'" C-m
 tmux send-keys -t $SESSION_NAME "echo ''" C-m
 tmux send-keys -t $SESSION_NAME "echo 'Старт: \$(date)'" C-m
 tmux send-keys -t $SESSION_NAME "echo ''" C-m

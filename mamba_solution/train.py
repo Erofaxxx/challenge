@@ -33,17 +33,20 @@ class TimeSeriesDataset(Dataset):
     def __init__(
         self,
         sequences_data: list,
-        context_length: int = 80,
-        prediction_start: int = 99
+        context_length: int = 40,
+        prediction_start: int = 99,
+        stride: int = 2
     ):
         """
         Args:
             sequences_data: список dict с ключами 'engineered_features', 'targets'
             context_length: длина контекста для модели
             prediction_start: с какого шага начинаем делать предсказания (99 = предсказываем шаг 100)
+            stride: шаг сэмплирования (1=все шаги, 2=каждый 2-й, 3=каждый 3-й)
         """
         self.context_length = context_length
         self.prediction_start = prediction_start
+        self.stride = stride
         self.samples = []
 
         # Создаем обучающие примеры из всех последовательностей
@@ -51,9 +54,9 @@ class TimeSeriesDataset(Dataset):
             engineered = seq_data['engineered_features']  # (1000, engineered_dim)
             targets = seq_data['targets']  # (1000, base_dim)
 
-            # Создаем примеры: предсказываем шаги 100-999
+            # Создаем примеры: предсказываем шаги 100-999 с заданным stride
             # При i=99: контекст до шага 99, предсказываем шаг 100
-            for i in range(prediction_start, len(engineered) - 1):
+            for i in range(prediction_start, len(engineered) - 1, stride):
                 # Контекст: берем последние context_length шагов до i включительно
                 start_idx = max(0, i - context_length + 1)
                 context = engineered[start_idx:i + 1]  # (<=context_length, engineered_dim)
@@ -300,10 +303,12 @@ def main():
                         help='Количество эпох')
     parser.add_argument('--lr', type=float, default=0.0005,
                         help='Learning rate')
-    parser.add_argument('--context-length', type=int, default=80,
-                        help='Длина контекста')
+    parser.add_argument('--context-length', type=int, default=40,
+                        help='Длина контекста (уменьшено для экономии памяти)')
+    parser.add_argument('--stride', type=int, default=2,
+                        help='Шаг сэмплирования (1=все шаги, 2=каждый 2-й) - для экономии памяти')
     parser.add_argument('--max-sequences', type=int, default=None,
-                        help='Максимальное количество последовательностей для обучения (для экономии памяти)')
+                        help='Максимальное количество последовательностей для обучения (опционально)')
 
     args = parser.parse_args()
 
@@ -319,8 +324,9 @@ def main():
     print(f"  epochs: {args.epochs}")
     print(f"  lr: {args.lr}")
     print(f"  context_length: {args.context_length}")
+    print(f"  stride: {args.stride} (каждый {args.stride}-й шаг)")
     if args.max_sequences:
-        print(f"  max_sequences: {args.max_sequences} (ограничение для экономии памяти)")
+        print(f"  max_sequences: {args.max_sequences} (ограничение)")
     print("=" * 60)
 
     # Device
@@ -339,11 +345,17 @@ def main():
 
     # Создаем datasets
     print("\nСоздаем datasets...")
-    train_dataset = TimeSeriesDataset(train_sequences, context_length=args.context_length)
-    val_dataset = TimeSeriesDataset(val_sequences, context_length=args.context_length)
+    print(f"Используем stride={args.stride} для экономии памяти")
+    train_dataset = TimeSeriesDataset(train_sequences, context_length=args.context_length, stride=args.stride)
+    val_dataset = TimeSeriesDataset(val_sequences, context_length=args.context_length, stride=args.stride)
 
     print(f"Train samples: {len(train_dataset)}")
     print(f"Val samples: {len(val_dataset)}")
+
+    # Оценка использования памяти
+    memory_per_sample = args.context_length * engineered_dim * 4 / (1024**2)  # MB
+    total_memory = memory_per_sample * len(train_dataset) / 1024  # GB
+    print(f"Примерное использование памяти: {total_memory:.1f} GB")
 
     # Создаем dataloaders
     train_loader = DataLoader(
