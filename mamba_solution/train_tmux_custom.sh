@@ -108,7 +108,7 @@ echo ""
 echo "Запускаем обучение..."
 
 # Создаем команду запуска
-TRAIN_CMD="python train.py --data ../datasets/train.parquet --num-models $NUM_MODELS --epochs $EPOCHS --batch-size $BATCH_SIZE --d-model $D_MODEL --n-layers $N_LAYERS 2>&1 | tee training_${NUM_MODELS}models_${EPOCHS}ep.log"
+TRAIN_CMD="python3 train.py --data ../datasets/train.parquet --num-models $NUM_MODELS --epochs $EPOCHS --batch-size $BATCH_SIZE --d-model $D_MODEL --n-layers $N_LAYERS 2>&1 | tee training_${NUM_MODELS}models_${EPOCHS}ep.log"
 
 # Создаем tmux сессию
 tmux new-session -d -s $SESSION_NAME -n "training"

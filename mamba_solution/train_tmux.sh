@@ -65,7 +65,7 @@ tmux send-keys -t $SESSION_NAME "echo ''" C-m
 tmux send-keys -t $SESSION_NAME "echo 'Сессия: $SESSION_NAME'" C-m
 tmux send-keys -t $SESSION_NAME "echo 'Время старта: \$(date)'" C-m
 tmux send-keys -t $SESSION_NAME "echo ''" C-m
-tmux send-keys -t $SESSION_NAME "python train.py --data ../datasets/train.parquet 2>&1 | tee training.log" C-m
+tmux send-keys -t $SESSION_NAME "python3 train.py --data ../datasets/train.parquet 2>&1 | tee training.log" C-m
 
 echo "✅ Обучение запущено в tmux сессии '$SESSION_NAME'"
 echo ""

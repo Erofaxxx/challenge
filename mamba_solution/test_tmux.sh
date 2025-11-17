@@ -44,7 +44,7 @@ tmux send-keys -t $SESSION_NAME "echo '===================================='" C-
 tmux send-keys -t $SESSION_NAME "echo ''" C-m
 tmux send-keys -t $SESSION_NAME "echo 'Время старта: \$(date)'" C-m
 tmux send-keys -t $SESSION_NAME "echo ''" C-m
-tmux send-keys -t $SESSION_NAME "python solution.py 2>&1 | tee testing.log" C-m
+tmux send-keys -t $SESSION_NAME "python3 solution.py 2>&1 | tee testing.log" C-m
 
 echo "✅ Тестирование запущено в tmux сессии '$SESSION_NAME'"
 echo ""
