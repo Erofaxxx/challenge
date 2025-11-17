@@ -81,9 +81,14 @@ class TimeSeriesDataset(Dataset):
         )
 
 
-def prepare_sequences(data_path: str, train_ratio: float = 0.8):
+def prepare_sequences(data_path: str, train_ratio: float = 0.8, max_sequences: int = None):
     """
     Загружаем и обрабатываем все последовательности
+
+    Args:
+        data_path: путь к файлу parquet
+        train_ratio: доля последовательностей для обучения
+        max_sequences: максимальное количество последовательностей (для экономии памяти)
 
     Returns:
         train_sequences, val_sequences: списки dict с обработанными последовательностями
@@ -101,6 +106,11 @@ def prepare_sequences(data_path: str, train_ratio: float = 0.8):
     # Получаем уникальные последовательности
     unique_sequences = df['seq_ix'].unique()
     print(f"Количество последовательностей: {len(unique_sequences)}")
+
+    # Ограничиваем количество если задано
+    if max_sequences is not None and max_sequences < len(unique_sequences):
+        print(f"⚠️  ОГРАНИЧЕНИЕ: Используем только {max_sequences} последовательностей (для экономии памяти)")
+        unique_sequences = unique_sequences[:max_sequences]
 
     # Разделяем на train/val
     np.random.seed(42)
@@ -292,6 +302,8 @@ def main():
                         help='Learning rate')
     parser.add_argument('--context-length', type=int, default=80,
                         help='Длина контекста')
+    parser.add_argument('--max-sequences', type=int, default=None,
+                        help='Максимальное количество последовательностей для обучения (для экономии памяти)')
 
     args = parser.parse_args()
 
@@ -307,6 +319,8 @@ def main():
     print(f"  epochs: {args.epochs}")
     print(f"  lr: {args.lr}")
     print(f"  context_length: {args.context_length}")
+    if args.max_sequences:
+        print(f"  max_sequences: {args.max_sequences} (ограничение для экономии памяти)")
     print("=" * 60)
 
     # Device
@@ -314,7 +328,7 @@ def main():
     print(f"Используем устройство: {device}")
 
     # Загружаем и обрабатываем данные
-    train_sequences, val_sequences, base_dim = prepare_sequences(args.data)
+    train_sequences, val_sequences, base_dim = prepare_sequences(args.data, max_sequences=args.max_sequences)
 
     # Вычисляем engineered_dim (оптимизированный набор)
     # 1+1+2+1+1+1+1+2+1+1 = 12x base_dim (СОКРАЩЕНО для оптимизации!)
