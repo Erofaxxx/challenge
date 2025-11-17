@@ -434,7 +434,7 @@ class PredictionModel:
         self.d_model = 128
         self.n_layers = 4
         self.d_state = 16
-        self.context_length = 80  # Сколько шагов используем для контекста
+        self.context_length = 40  # Сколько шагов используем для контекста (должно совпадать с обучением!)
 
         # Состояние
         self.current_seq_ix = None
@@ -473,6 +473,7 @@ class PredictionModel:
                 self.d_model = checkpoint.get('d_model', 128)
                 self.n_layers = checkpoint.get('n_layers', 4)
                 self.d_state = checkpoint.get('d_state', 16)
+                self.context_length = checkpoint.get('context_length', 40)
 
             # Создаем модель
             model = Mamba2Model(
@@ -494,6 +495,12 @@ class PredictionModel:
         print(f"Загружено моделей: {len(self.models)}")
         print(f"Размерность базовых признаков: {self.base_dim}")
         print(f"Размерность после feature engineering: {self.engineered_dim}")
+
+        # Инициализируем feature engineer и normalizer если модели загружены
+        if self.base_dim is not None:
+            self.feature_engineer = FeatureEngineer(self.base_dim)
+            self.normalizer = SequenceNormalizer(self.engineered_dim)
+            self.context_buffer = deque(maxlen=self.context_length)
 
     def _reset_sequence(self):
         """Сбрасываем все состояние для новой последовательности"""

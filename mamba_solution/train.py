@@ -183,7 +183,8 @@ def train_model(
     device: torch.device,
     epochs: int = 15,
     lr: float = 0.0005,
-    save_path: str = None
+    save_path: str = None,
+    context_length: int = 40
 ):
     """Обучение одной модели"""
 
@@ -268,7 +269,8 @@ def train_model(
                     'engineered_dim': model.input_dim,
                     'd_model': model.d_model,
                     'n_layers': len(model.layers),
-                    'd_state': 16
+                    'd_state': 16,
+                    'context_length': context_length
                 }, save_path)
                 print(f"  Модель сохранена: {save_path}")
         else:
@@ -408,7 +410,8 @@ def main():
             device=device,
             epochs=args.epochs,
             lr=args.lr,
-            save_path=save_path
+            save_path=save_path,
+            context_length=args.context_length
         )
 
         # Очистка памяти
