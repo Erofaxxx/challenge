@@ -75,7 +75,7 @@ mamba_solution/
 #### Базовое обучение (рекомендуется)
 
 ```bash
-python train.py --data ../datasets/train.parquet
+python3 train.py --data ../datasets/train.parquet
 ```
 
 Это обучит **3 модели** с параметрами по умолчанию:
@@ -89,7 +89,7 @@ python train.py --data ../datasets/train.parquet
 #### Обучение с кастомными параметрами
 
 ```bash
-python train.py \
+python3 train.py \
     --data ../datasets/train.parquet \
     --num-models 3 \
     --d-model 128 \
@@ -103,7 +103,7 @@ python train.py \
 #### Быстрое обучение (для тестирования)
 
 ```bash
-python train.py \
+python3 train.py \
     --data ../datasets/train.parquet \
     --num-models 1 \
     --epochs 5 \
@@ -136,7 +136,7 @@ python train.py \
 #### Локальное тестирование
 
 ```bash
-python solution.py
+python3 solution.py
 ```
 
 Этот скрипт:
@@ -383,7 +383,7 @@ if epoch % 5 == 0:
 #### Сервер с 16GB RAM, 8 CPU (рекомендуется)
 
 ```bash
-python train.py \
+python3 train.py \
     --num-models 3 \
     --d-model 128 \
     --n-layers 4 \
@@ -394,7 +394,7 @@ python train.py \
 #### Сервер с 8GB RAM, 4 CPU
 
 ```bash
-python train.py \
+python3 train.py \
     --num-models 2 \
     --d-model 96 \
     --n-layers 4 \
@@ -405,7 +405,7 @@ python train.py \
 #### Ноутбук (минимальная конфигурация)
 
 ```bash
-python train.py \
+python3 train.py \
     --num-models 1 \
     --d-model 64 \
     --n-layers 3 \
@@ -468,7 +468,7 @@ python train.py \
 ## 📝 Чек-лист перед отправкой
 
 - ✅ Обучены 3 модели (`mamba_model_0.pt`, `mamba_model_1.pt`, `mamba_model_2.pt`)
-- ✅ Локальное тестирование прошло успешно (`python solution.py`)
+- ✅ Локальное тестирование прошло успешно (`python3 solution.py`)
 - ✅ R² score ≥ 0.39
 - ✅ `solution.py` находится в корне архива
 - ✅ Все файлы весов включены в архив
