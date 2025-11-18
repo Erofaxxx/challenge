@@ -50,11 +50,11 @@ case $config_choice in
     3)
         NUM_MODELS=5
         EPOCHS=20
-        BATCH_SIZE=64
+        BATCH_SIZE=32
         D_MODEL=192
         N_LAYERS=6
-        STRIDE=2
-        CONTEXT=50
+        STRIDE=3
+        CONTEXT=40
         echo "✅ Выбрано: Улучшенное обучение"
         ;;
     4)
